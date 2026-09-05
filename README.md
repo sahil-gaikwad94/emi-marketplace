@@ -1,169 +1,108 @@
-# Fundora — Product EMI Marketplace
+# Fundora — Smartphone EMI Marketplace
 
-A polished, database-backed product detail experience for the 1Fi SDE1 assignment. The app presents smartphones, variants, and mutual-fund-backed EMI plans through a React frontend and an Express/Node REST API.
+Fundora is a responsive, database-backed smartphone marketplace built for the 1Fi SDE1 assignment. Users can browse a live catalog, open product-specific pages, switch between device variants, and compare EMI plans with monthly payment, tenure, interest, cashback, and fund-partner information.
 
-> **Implementation note:** The session's managed WebDev database is MySQL/TiDB, so the live implementation uses **React + Express + Node.js + Drizzle ORM + MySQL/TiDB**. This is the provisioned, deployable related stack available in this environment. The application is deliberately layered like a MERN application: React owns presentation, Express owns HTTP controllers, and `server/db.ts` owns the persistence adapter. Replacing the Drizzle repository with Mongoose repositories would not change the REST contract or React screens.
+## Links
+
+| Resource | Link |
+| --- | --- |
+| Source repository | [github.com/sahil-gaikwad94/emi-marketplace](https://github.com/sahil-gaikwad94/emi-marketplace) |
+| Live application | [(https://emi-marketplace7l.onrender.com)](https://emi-marketplace-1m7l.onrender.com)]|
+
+
 
 ## Assignment coverage
 
-| Requirement | Implementation |
+| Assignment requirement | Implementation |
 | --- | --- |
-| Dynamic product information | `GET /api/products` and `GET /api/products/:slug` read from the database |
-| Product-specific URLs | `/products/iphone-17-pro`, `/products/samsung-galaxy-s24-ultra`, and `/products/oneplus-13` |
-| Three products | Seeded in `server/seed.ts` |
-| At least two variants per product | Seven total variants across the three products |
-| EMI plan selection | Product page displays selectable plans and a selected-plan summary |
-| Monthly payment, tenure, interest, cashback | Returned by the EMI plan API and rendered in the plan cards |
-| API-backed variant switching | `GET /api/products/:slug/emi-plans?variantId=...` |
-| Schema and seed data | `drizzle/schema.ts`, generated migration, and `server/seed.ts` |
-| Responsive UI | Mobile-first CSS with desktop, tablet, and mobile breakpoints |
+| Dynamic product information | Product summaries and product details are read through the REST API from the database. |
+| Product-specific URLs | `/products/iphone-17-pro`, `/products/samsung-galaxy-s24-ultra`, and `/products/oneplus-13`. |
+| At least three products | Three seeded smartphones: iPhone 17 Pro, Samsung Galaxy S24 Ultra, and OnePlus 13. |
+| At least two variants per product | Seven variants across the three products, including storage and color selections. |
+| EMI plan selection | Product pages display selectable EMI plans for the selected variant. |
+| Required EMI data | Monthly payment, tenure, interest rate, cashback, and fund-partner details are displayed. |
+| Database integration | MySQL-compatible TiDB Cloud database accessed through Drizzle ORM. |
+| Responsive interface | Custom responsive CSS supports desktop, tablet, and mobile layouts. |
+| Deployment | Production React frontend and Express API run together on Render. |
 
-## Tech stack
+## Main user flow
 
-| Layer | Technology | Why it is used |
-| --- | --- | --- |
-| Presentation | React 19 + TypeScript | Component-based, typed UI and clear state transitions |
-| Styling | Tailwind CSS 4 import + custom CSS | Utility foundation with a distinctive editorial storefront system |
-| Routing | Wouter | Small client-side route layer for product-specific URLs |
-| HTTP server | Node.js + Express | Explicit REST controllers and health endpoint |
-| Persistence | MySQL/TiDB + Drizzle ORM | Managed database connection, typed schema, foreign keys, and indexes |
-| Icons | Lucide React | Accessible, consistent interface icons |
-| Testing | Vitest | Fast API contract and scaffold regression tests |
-| Build | Vite + esbuild | Fast client build and production Node bundle |
+The home page requests the catalog from `GET /api/products`. Selecting a product opens its unique product URL. The product page loads the product, variants, and initial EMI plans. Selecting another color or storage option updates the product image and requests plans for the selected variant. The user can compare monthly payments, tenures, interest rates, cashback, and the fund partner for each plan.
+
+The final proceed action is intentionally a selection confirmation. The assignment does not require payments, identity verification, or a financial transaction.
+
+## Features
+
+The application includes a curated catalog landing page, product cards, product-specific routes, responsive navigation, product image fallbacks, device variant switching, EMI plan cards, cashback labels, interest-rate labels, stock labels, and a selected-plan summary.
+
+The catalog is database-backed rather than hardcoded into the React components. Product and variant images are stored with the catalog records. The frontend also contains generated SVG fallback images so a product card remains visually usable if an external image host is temporarily unavailable.
+
+## Technology stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19, TypeScript, Wouter |
+| Styling | Tailwind CSS 4 and custom responsive CSS |
+| Backend | Node.js and Express |
+| API | REST endpoints under `/api` |
+| Database | TiDB Cloud, MySQL-compatible |
+| ORM | Drizzle ORM and Drizzle Kit |
+| Images | Unsplash catalog URLs with local SVG fallbacks |
+| Testing | Vitest |
+| Build | Vite for the frontend and esbuild for the server bundle |
+| Deployment | Render Web Service |
 
 ## Architecture
 
-The code follows a layered **modern MVC-style architecture**. In classic MVC, the model represents data, the controller handles requests, and the view renders the response. In this app, the React client is the View, Express route handlers are Controllers, and the database helpers plus Drizzle schema are the Model layer.
-
 ```
-React View
-  ├─ Home.tsx                         catalog landing page
-  ├─ ProductPage.tsx                  product detail + EMI selection
-  └─ lib/api.ts                       typed HTTP client
+React + TypeScript frontend
+  ├── Home.tsx
+  ├── ProductPage.tsx
+  └── lib/api.ts
+          │
+          │ JSON over same-origin HTTP
+          ▼
+Express API
+  └── server/productRoutes.ts
           │
           ▼
-Express Controller Layer
-  └─ server/productRoutes.ts          REST routes, validation, serialization
+Database repository
+  └── server/db.ts
           │
           ▼
-Repository / Model Layer
-  └─ server/db.ts                     database connection + query helpers
-          │
-          ▼
-Drizzle Schema + MySQL/TiDB
-  ├─ products
-  ├─ product_variants
-  └─ emi_plans
+Drizzle ORM + TiDB Cloud
+  ├── products
+  ├── product_variants
+  ├── emi_plans
+  └── users
 ```
 
-### Why this separation matters
-
-The UI does not know table names or SQL details. The route layer does not know how the browser formats a button. The query layer owns relationships, ordering, and database availability. This prevents the common mistake of putting database calls directly inside React components or embedding hardcoded catalog objects in the frontend.
-
-A MongoDB/Mongoose version would preserve the same boundaries:
-
-```
-products collection + variants / plans subdocuments
-          │
-          ▼
-Mongoose repository with getAllProducts(), getProductBySlug(), getPlansForVariant()
-          │
-          ▼
-The same Express routes and React client
-```
+The frontend does not contain SQL queries. The Express route layer validates requests and serializes responses. The database layer owns connection pooling, TLS configuration, ordering, and query helpers.
 
 ## Data model
 
-The database uses three catalog tables. Prices are stored as integer paise to avoid floating-point currency errors. Interest rates are stored as basis points, so `1050` means `10.50%`.
-
-| Table | Purpose | Important constraints |
-| --- | --- | --- |
-| `products` | Product-level identity and marketing data | Unique `slug`, indexed `category` |
-| `product_variants` | Color, storage, SKU, price, image, and stock | Unique `sku`, foreign key to `products`, cascade delete |
-| `emi_plans` | Monthly amount, tenure, rate, cashback, and fund metadata | Foreign key to `product_variants`, unique variant + tenure + rate |
-
-Relationships:
+The catalog uses three related tables:
 
 ```
 products 1 ──────── * product_variants 1 ──────── * emi_plans
 ```
 
-The generated migration is `drizzle/0001_hesitant_magneto.sql`. The schema source of truth is `drizzle/schema.ts`.
+| Table | Purpose | Important fields |
+| --- | --- | --- |
+| `products` | Product-level marketing and catalog data | Slug, brand, name, category, description, image, rating, featured status |
+| `product_variants` | Color, storage, SKU, pricing, image, and stock | Product ID, SKU, color, storage, MRP, price, image URL, stock label |
+| `emi_plans` | Variant-specific financing options | Tenure, monthly payment, interest rate, cashback, fund partner |
+| `users` | Optional scaffold authentication records | Open ID, name, email, role, timestamps |
 
-## Project structure
+Prices are stored as integer paise to avoid floating-point currency errors. Interest rates are stored as basis points; `1050` represents `10.50%`.
 
-```
-client/
-  index.html
-  src/
-    App.tsx
-    index.css
-    lib/api.ts
-    pages/Home.tsx
-    pages/ProductPage.tsx
-server/
-  db.ts
-  productRoutes.ts
-  productRoutes.test.ts
-  seed.ts
-  _core/index.ts
-drizzle/
-  schema.ts
-  0001_hesitant_magneto.sql
-README.md
-SUBMISSION.md
-```
-
-## Local setup
-
-### Prerequisites
-
-Install Node.js 22 or newer, pnpm, and a MySQL-compatible database. TiDB works as well. The application expects a normal `DATABASE_URL` connection string.
-
-### Install dependencies
-
-```bash
-pnpm install
-```
-
-### Configure the database
-
-Set the connection string in your shell or local environment. Do not commit credentials.
-
-```bash
-export DATABASE_URL='mysql://user:password@host:3306/emi_marketplace'
-export NODE_ENV='development'
-export PORT='3000'
-```
-
-The managed WebDev preview already provides `DATABASE_URL` and the runtime configuration.
-
-### Apply schema and seed data
-
-```bash
-pnpm db:push
-pnpm db:seed
-```
-
-`db:seed` is idempotent. It uses product slugs and variant SKUs as stable identity keys, so rerunning it updates the existing catalog instead of duplicating products. It creates three products, seven variants, and 42 EMI plans.
-
-### Run the development server
-
-```bash
-pnpm dev
-```
-
-Open the printed preview URL. The API and frontend are served by the same Express process.
-
-### Deploy on Render
-
-Deploy this repository as a **Web Service**, not a Static Site. The included `render.yaml` uses the production Node server, exposes `/api/health` as the health check, runs the Drizzle migration and idempotent seed as the release command, and expects `DATABASE_URL` to be configured as a secret environment variable. If an existing Render service was created as a Static Site, create or convert it to a Web Service with `pnpm build` as the build command and `pnpm start` as the start command. A static deployment can serve the React shell but cannot serve the Express `/api/*` routes, which results in `404` responses and an empty catalog.
+The SQL migrations are safe for the existing database because table creation uses `CREATE TABLE IF NOT EXISTS`. The seed script uses product slugs and variant SKUs as stable identities, so it can be run repeatedly without creating duplicate catalog records.
 
 ## REST API
 
 ### `GET /api/health`
 
-Confirms the service is alive and whether a database URL is configured.
+Returns service status and whether `DATABASE_URL` is configured.
 
 ```json
 {
@@ -175,7 +114,7 @@ Confirms the service is alive and whether a database URL is configured.
 
 ### `GET /api/products`
 
-Returns product summaries for the catalog landing page.
+Returns product summaries for the home page.
 
 ```json
 {
@@ -200,94 +139,92 @@ Returns product summaries for the catalog landing page.
 
 ### `GET /api/products/:slug`
 
-Returns a complete product, all variants, and the initial variant's EMI plans.
+Returns one product, all of its variants, and the initial variant's EMI plans.
 
-Example: `/api/products/iphone-17-pro`
+Example:
 
-```json
-{
-  "data": {
-    "id": 1,
-    "slug": "iphone-17-pro",
-    "brand": "Apple",
-    "name": "iPhone 17 Pro",
-    "description": "A titanium-finish flagship...",
-    "variants": [
-      {
-        "id": 1,
-        "sku": "APL-IP17P-SLV-256",
-        "label": "Silver / 256 GB",
-        "colorName": "Silver",
-        "colorHex": "#d7d8d9",
-        "storage": "256 GB",
-        "mrp": 134000,
-        "price": 127400,
-        "imageUrl": "https://images.unsplash.com/...",
-        "stockLabel": "In stock"
-      }
-    ],
-    "plans": [
-      {
-        "id": 1,
-        "tenureMonths": 3,
-        "monthlyPayment": 42467,
-        "monthlyPaymentLabel": "₹42,467/mo",
-        "interestRate": 0,
-        "interestRateLabel": "0% interest",
-        "cashback": 750,
-        "cashbackLabel": "₹750 cashback",
-        "fundPartner": "Northstar Mutual Fund",
-        "fundLabel": "Northstar Liquid Advantage Fund",
-        "featured": true
-      }
-    ]
-  }
-}
+```
+/api/products/iphone-17-pro
 ```
 
 ### `GET /api/products/:slug/emi-plans?variantId=:id`
 
-Returns plans for the selected variant. The server validates that `variantId` is a positive integer and returns a `400` response before querying when it is invalid.
+Returns EMI plans for the selected variant.
 
-```json
-{
-  "data": [
-    {
-      "id": 7,
-      "tenureMonths": 6,
-      "monthlyPayment": 21233,
-      "monthlyPaymentLabel": "₹21,233/mo",
-      "interestRate": 0,
-      "interestRateLabel": "0% interest",
-      "cashback": 500,
-      "cashbackLabel": "₹500 cashback",
-      "fundPartner": "Northstar Mutual Fund",
-      "fundLabel": "Northstar Liquid Advantage Fund",
-      "featured": true
-    }
-  ],
-  "meta": { "count": 6, "variantId": 2 }
-}
+Example:
+
+```
+/api/products/iphone-17-pro/emi-plans?variantId=1
 ```
 
-### Error behavior
+The API returns `400` for an invalid variant ID and `404` when a product or variant does not exist. Internal database errors are logged server-side and are returned to the client as a generic `500` error.
 
-| Status | Meaning |
-| --- | --- |
-| `200` | Request succeeded |
-| `400` | Invalid variant query input |
-| `404` | Product or variant does not exist |
-| `500` | Database or server failure; response omits internal error details |
+## Seeded catalog
 
-## Frontend behavior
+The seed script creates or updates:
 
-The landing page makes one request to `GET /api/products`. Each card navigates to a unique product URL. The product page makes one detail request and initializes the first variant and plan. Clicking another variant makes a second request to the variant-specific EMI endpoint. The price and product image update locally from the selected variant while the EMI plan list is replaced with the server response.
+- Three products.
 
-The proceed button intentionally stops at a clear selection confirmation because the assignment does not require payment or identity verification. It is the correct place to add a checkout or application flow later. No financial transaction is performed.
+- Seven product variants.
 
-## Verification
+- Forty-two EMI plans.
 
-Run the full automated checks:
+- Six EMI terms per variant: 3, 6, 12, 24, 36, and 48 months.
+
+- Zero-interest plans for shorter terms and 10.50% interest for longer terms.
+
+The seeded image URLs have been checked for successful responses. If an image later fails to load, the React image handler switches to a generated brand-specific SVG fallback.
+
+## Local development
+
+### Prerequisites
+
+Install Node.js 22 or newer, pnpm, and a MySQL-compatible database. TiDB Cloud is supported.
+
+### Install dependencies
+
+```bash
+pnpm install
+```
+
+### Configure environment variables
+
+Do not commit credentials. Set the following variables in your shell or local `.env` file:
+
+```bash
+export DATABASE_URL='mysql://user:password@host:4000/database_name'
+export NODE_ENV=development
+export PORT=3000
+```
+
+TiDB Cloud Serverless requires secure public connections. The application parses `DATABASE_URL` and explicitly enables TLS 1.2 for both runtime queries and Drizzle Kit migrations.
+
+### Initialize or update the database
+
+For a new database, apply the schema and seed the catalog:
+
+```bash
+pnpm db:push
+pnpm db:seed
+```
+
+For the deployed database used by this project, the tables already exist and the Render build runs the idempotent seed command directly:
+
+```bash
+pnpm db:seed
+```
+
+### Start the development server
+
+```bash
+pnpm dev
+```
+
+The frontend and API are served by the same Express process.
+
+## Production build
+
+Run the checks and build locally:
 
 ```bash
 pnpm check
@@ -295,47 +232,108 @@ pnpm test
 pnpm build
 ```
 
-The tests cover the existing auth logout regression and the product REST contract. The product API tests use a mocked query layer so they verify HTTP behavior without modifying the live database.
-
-Useful manual smoke checks:
+Start the production server with:
 
 ```bash
-curl "$APP_URL/api/health"
-curl "$APP_URL/api/products"
-curl "$APP_URL/api/products/iphone-17-pro"
-curl "$APP_URL/api/products/iphone-17-pro/emi-plans?variantId=1"
-```
-
-In the browser, verify that `/products/iphone-17-pro` and the other two product URLs load directly, not only after navigating from the home page.
-
-## Deployment
-
-The project is ready for the managed WebDev runtime. Before publishing, save a WebDev checkpoint. The production command is:
-
-```bash
-pnpm build
 pnpm start
 ```
 
-For Vercel or Render, configure the build and start commands above and add `DATABASE_URL` as a server-side environment variable. Run the migration and seed once against the production database, then set the frontend and API to the same origin so `/api/*` requests do not need a separate CORS configuration.
+The production build outputs the bundled server to `dist/index.js` and the frontend assets to `dist/public`.
 
-If deploying on separate frontend and API hosts, replace the relative API base in `client/src/lib/api.ts` with a public `VITE_API_BASE_URL` and configure CORS on the Express server.
+## Render deployment
 
-## Submission
+Deploy this repository as a **Web Service**, not a Static Site. The repository includes `render.yaml` for the service configuration.
 
-Use `SUBMISSION.md` for the assignment checklist, the final Google Form fields, and a two-to-five-minute demo recording script. The form link from the brief is [https://forms.gle/V4vqbcSAhJV7BqoAA](https://forms.gle/V4vqbcSAhJV7BqoAA).
+| Render setting | Value |
+| --- | --- |
+| Service type | Web Service |
+| Runtime | Node |
+| Build command | `pnpm install --frozen-lockfile && pnpm db:seed && pnpm build` |
+| Start command | `pnpm start` |
+| Health check path | `/api/health` |
+
+Configure these environment variables in Render:
+
+| Variable | Value |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Complete TiDB Cloud MySQL connection string |
+
+The production build seeds the already-created database and then builds the frontend and server. The seed process closes its connection pool after completion so the Render build exits cleanly.
+
+After deployment, verify the following endpoints:
+
+```bash
+curl https://YOUR-RENDER-DOMAIN.onrender.com/api/health
+curl https://YOUR-RENDER-DOMAIN.onrender.com/api/products
+```
+
+The health response must contain `"database": true`. The catalog response must contain three products. The homepage should then display the catalog and images.
+
+## Testing
+
+The repository includes API contract tests and an authentication logout regression test. The product route tests mock the query layer, so they validate HTTP behavior without modifying the production database.
+
+The final local validation passed with:
+
+```
+TypeScript check: passed
+Test files: 2 passed
+Tests: 4 passed
+Production build: passed
+Migration validation: passed
+```
+
+## Project structure
+
+```
+client/
+  index.html
+  src/
+    App.tsx
+    index.css
+    lib/api.ts
+    lib/fallbackImages.ts
+    pages/Home.tsx
+    pages/ProductPage.tsx
+server/
+  db.ts
+  productRoutes.ts
+  productRoutes.test.ts
+  seed.ts
+  _core/index.ts
+drizzle/
+  schema.ts
+  relations.ts
+  0000_great_lady_vermin.sql
+  0001_hesitant_magneto.sql
+  meta/
+drizzle.config.ts
+render.yaml
+package.json
+README.md
+```
+
 
 ## References
 
-[1]: https://react.dev/ "React documentation"
+[1]: https://github.com/sahil-gaikwad94/emi-marketplace "Fundora source repository"
 
-[2]: https://expressjs.com/ "Express documentation"
+[2]: https://react.dev/ "React documentation"
 
-[3]: https://orm.drizzle.team/docs/overview "Drizzle ORM documentation"
+[3]: https://expressjs.com/ "Express documentation"
 
-[4]: https://dev.mysql.com/doc/ "MySQL documentation"
+[4]: https://orm.drizzle.team/docs/overview "Drizzle ORM documentation"
 
-[5]: https://vitest.dev/ "Vitest documentation"
+[5]: https://docs.pingcap.com/developer/dev-guide-sample-application-nodejs-mysql2/ "TiDB Cloud Node.js mysql2 TLS guide"
+
+[6]: https://render.com/docs/blueprint-spec "Render Blueprint specification"
+
+[7]: https://vitest.dev/guide/ "Vitest documentation"
+
+[8]: https://vite.dev/guide/ "Vite documentation"
+
+[9]: https://pnpm.io/ "pnpm documentation"
 
 [6]: https://wouter.vercel.app/ "Wouter documentation"
 [6]: https://wouter.vercel.app/ "Wouter documentation"
