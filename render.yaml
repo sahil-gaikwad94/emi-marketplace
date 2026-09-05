@@ -3,7 +3,7 @@ services:
     name: emi-marketplace
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm db:push && pnpm db:seed && pnpm build
+    buildCommand: pnpm install --frozen-lockfile && pnpm db:seed && pnpm build
     startCommand: pnpm start
     healthCheckPath: /api/health
     envVars:
