@@ -335,5 +335,3 @@ README.md
 
 [9]: https://pnpm.io/ "pnpm documentation"
 
-[6]: https://wouter.vercel.app/ "Wouter documentation"
-[6]: https://wouter.vercel.app/ "Wouter documentation"
