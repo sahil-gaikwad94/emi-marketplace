@@ -200,4 +200,3 @@ export async function seedPlan(plan: InsertEmiPlan) {
 }
 
 export { and, eq };
-
