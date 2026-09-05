@@ -1,3 +1,4 @@
+import { createPool, type Pool } from "mysql2/promise";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -15,18 +16,41 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
+let _pool: Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // TiDB Cloud Serverless REQUIRES SSL
+      _pool = createPool({
+        uri: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: true, // verify server certificate
+        },
+        connectionLimit: 10,
+        queueLimit: 0,
+        waitForConnections: true,
+        enableKeepAlive: true,
+      });
+      _db = drizzle(_pool);
+      console.log("[Database] Pool created with SSL enabled");
     } catch (error) {
-      console.warn("[Database] Failed to create connection:", error);
+      console.error("[Database] Failed to create connection pool:", error);
       _db = null;
     }
   }
   return _db;
+}
+
+// Graceful shutdown helper
+export async function closeDb() {
+  if (_pool) {
+    await _pool.end();
+    _pool = null;
+    _db = null;
+    console.log("[Database] Pool closed");
+  }
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -170,6 +194,9 @@ export async function seedPlan(plan: InsertEmiPlan) {
       featured: plan.featured,
     },
   });
+}
+
+export { and, eq };
 }
 
 export { and, eq };
