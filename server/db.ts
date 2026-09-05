@@ -33,7 +33,10 @@ export async function getDb() {
         waitForConnections: true,
         enableKeepAlive: true,
       });
-      _db = drizzle(_pool);
+      // mysql2 can be resolved through more than one package path in deployment
+      // builds; the runtime object is compatible, but TypeScript sees the Pool
+      // declarations as distinct types.
+      _db = drizzle(_pool as any) as ReturnType<typeof drizzle>;
       console.log("[Database] Pool created with SSL enabled");
     } catch (error) {
       console.error("[Database] Failed to create connection pool:", error);
@@ -197,6 +200,4 @@ export async function seedPlan(plan: InsertEmiPlan) {
 }
 
 export { and, eq };
-}
 
-export { and, eq };
