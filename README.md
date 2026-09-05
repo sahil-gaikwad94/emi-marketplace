@@ -7,7 +7,7 @@ A polished, database-backed product detail experience for the 1Fi SDE1 assignmen
 ## Assignment coverage
 
 | Requirement | Implementation |
-|---|---|
+| --- | --- |
 | Dynamic product information | `GET /api/products` and `GET /api/products/:slug` read from the database |
 | Product-specific URLs | `/products/iphone-17-pro`, `/products/samsung-galaxy-s24-ultra`, and `/products/oneplus-13` |
 | Three products | Seeded in `server/seed.ts` |
@@ -21,7 +21,7 @@ A polished, database-backed product detail experience for the 1Fi SDE1 assignmen
 ## Tech stack
 
 | Layer | Technology | Why it is used |
-|---|---|---|
+| --- | --- | --- |
 | Presentation | React 19 + TypeScript | Component-based, typed UI and clear state transitions |
 | Styling | Tailwind CSS 4 import + custom CSS | Utility foundation with a distinctive editorial storefront system |
 | Routing | Wouter | Small client-side route layer for product-specific URLs |
@@ -35,7 +35,7 @@ A polished, database-backed product detail experience for the 1Fi SDE1 assignmen
 
 The code follows a layered **modern MVC-style architecture**. In classic MVC, the model represents data, the controller handles requests, and the view renders the response. In this app, the React client is the View, Express route handlers are Controllers, and the database helpers plus Drizzle schema are the Model layer.
 
-```text
+```
 React View
   ├─ Home.tsx                         catalog landing page
   ├─ ProductPage.tsx                  product detail + EMI selection
@@ -62,7 +62,7 @@ The UI does not know table names or SQL details. The route layer does not know h
 
 A MongoDB/Mongoose version would preserve the same boundaries:
 
-```text
+```
 products collection + variants / plans subdocuments
           │
           ▼
@@ -77,14 +77,14 @@ The same Express routes and React client
 The database uses three catalog tables. Prices are stored as integer paise to avoid floating-point currency errors. Interest rates are stored as basis points, so `1050` means `10.50%`.
 
 | Table | Purpose | Important constraints |
-|---|---|---|
+| --- | --- | --- |
 | `products` | Product-level identity and marketing data | Unique `slug`, indexed `category` |
 | `product_variants` | Color, storage, SKU, price, image, and stock | Unique `sku`, foreign key to `products`, cascade delete |
 | `emi_plans` | Monthly amount, tenure, rate, cashback, and fund metadata | Foreign key to `product_variants`, unique variant + tenure + rate |
 
 Relationships:
 
-```text
+```
 products 1 ──────── * product_variants 1 ──────── * emi_plans
 ```
 
@@ -92,7 +92,7 @@ The generated migration is `drizzle/0001_hesitant_magneto.sql`. The schema sourc
 
 ## Project structure
 
-```text
+```
 client/
   index.html
   src/
@@ -154,6 +154,10 @@ pnpm dev
 ```
 
 Open the printed preview URL. The API and frontend are served by the same Express process.
+
+### Deploy on Render
+
+Deploy this repository as a **Web Service**, not a Static Site. The included `render.yaml` uses the production Node server, exposes `/api/health` as the health check, runs the Drizzle migration and idempotent seed as the release command, and expects `DATABASE_URL` to be configured as a secret environment variable. If an existing Render service was created as a Static Site, create or convert it to a Web Service with `pnpm build` as the build command and `pnpm start` as the start command. A static deployment can serve the React shell but cannot serve the Express `/api/*` routes, which results in `404` responses and an empty catalog.
 
 ## REST API
 
@@ -269,7 +273,7 @@ Returns plans for the selected variant. The server validates that `variantId` is
 ### Error behavior
 
 | Status | Meaning |
-|---:|---|
+| --- | --- |
 | `200` | Request succeeded |
 | `400` | Invalid variant query input |
 | `404` | Product or variant does not exist |
@@ -324,8 +328,14 @@ Use `SUBMISSION.md` for the assignment checklist, the final Google Form fields, 
 ## References
 
 [1]: https://react.dev/ "React documentation"
+
 [2]: https://expressjs.com/ "Express documentation"
+
 [3]: https://orm.drizzle.team/docs/overview "Drizzle ORM documentation"
+
 [4]: https://dev.mysql.com/doc/ "MySQL documentation"
+
 [5]: https://vitest.dev/ "Vitest documentation"
+
+[6]: https://wouter.vercel.app/ "Wouter documentation"
 [6]: https://wouter.vercel.app/ "Wouter documentation"
