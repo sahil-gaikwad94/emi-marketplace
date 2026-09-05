@@ -3,13 +3,11 @@ services:
     name: emi-marketplace
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm db:push && pnpm db:seed && pnpm build
     startCommand: pnpm start
-    preDeployCommand: pnpm db:push && pnpm db:seed
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
         sync: false
-
