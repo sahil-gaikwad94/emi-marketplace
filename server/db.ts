@@ -23,9 +23,15 @@ export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       // TiDB Cloud Serverless REQUIRES SSL
+      const connectionUrl = new URL(process.env.DATABASE_URL);
       _pool = createPool({
-        uri: process.env.DATABASE_URL,
+        host: connectionUrl.hostname,
+        port: Number(connectionUrl.port || 4000),
+        user: decodeURIComponent(connectionUrl.username),
+        password: decodeURIComponent(connectionUrl.password),
+        database: connectionUrl.pathname.replace(/^\//, ""),
         ssl: {
+          minVersion: "TLSv1.2",
           rejectUnauthorized: true, // verify server certificate
         },
         connectionLimit: 10,
@@ -200,3 +206,4 @@ export async function seedPlan(plan: InsertEmiPlan) {
 }
 
 export { and, eq };
+
